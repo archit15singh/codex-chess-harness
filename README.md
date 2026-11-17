@@ -34,9 +34,10 @@ For an authorized live broadcast, follow the [Twitch streaming workflow](docs/li
 
 1. Take a native Brave screenshot directly, before creating the controller or game directory. Visually confirm the Duolingo Chess Matches lobby, the selected Anyone mode, and an enabled Play Anyone button on the current frame. Use the frozen screenshot format.
 2. If another page is focused or the lobby state is uncertain, skip every click. Log the blocked preflight and wait for the correct lobby to be visible. From a fresh screenshot, confirm the lobby, mode, and button again. Respect any visible matchmaking cooldown.
-3. When the check passes, allocate the planned game ID. Inspect the controller's first capture before issuing the queue click. If focus changed during setup, log the preflight failure and leave the game unstarted. Keep any unstarted setup directory private and move it aside before reusing that ID. Once a queue click is issued, preserve the ledger as an attempt even if matchmaking fails.
+3. After repeated window position errors, confirm that clicks reach the right window before queueing. On a fresh screenshot of Chess Matches, click a different mode card and verify the changed selection. Reselect Anyone and verify the selection and enabled Play Anyone button from another screenshot. Stop clicking if the readback fails or the lobby disappears.
+4. When the check passes, allocate the planned game ID. Inspect the controller's first capture before issuing the queue click. If focus changed during setup, log the preflight failure and leave the game unstarted. Keep any unstarted setup directory private and move it aside before reusing that ID. Preserve the ledger as a match attempt once a queue click is issued or a user-started board is observed.
 
-Append blocked preflights to `evidence/private/preflight-events.jsonl` with a UTC timestamp, planned game ID, and a fixed reason such as `wrong_surface` or `lobby_unverified`. The preflight log is separate from the match manifest. Keep it free of screenshots, window titles, URLs, account details, and free-text descriptions of unrelated pages.
+Append blocked preflights to `evidence/private/preflight-events.jsonl` with a UTC timestamp, planned game ID, and a fixed reason such as `wrong_surface`, `lobby_unverified`, or `click_unverified`. The preflight log is separate from the match manifest. Keep it free of screenshots, window titles, URLs, account details, and free-text descriptions of unrelated pages.
 
 ```json
 {"at":"2026-01-01T00:00:00Z","planned_game":"example-001","reason":"wrong_surface"}
