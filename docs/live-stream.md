@@ -1,5 +1,7 @@
 # Stream an authorized game on Twitch
 
+For the Codex WebSocket workflow, use [obs-chess-stream](../.agents/skills/obs-chess-stream/SKILL.md).
+
 Use OBS as a separate output. The player still reads the frozen native screenshots, clicks visible controls, and archives the full evidence locally. Record stream status, interruptions, and timing effects in the attempt notes.
 
 1. In OBS, choose Twitch under **Settings → Stream**. If **Connect Account** crashes, open **Creator Dashboard → Settings → Stream** on Twitch and paste the primary stream key directly into the masked OBS field. Keep that key out of chat, shell history, screenshots, and Git. [Twitch stream-key guide](https://help.twitch.tv/s/article/twitch-stream-key-faq)
