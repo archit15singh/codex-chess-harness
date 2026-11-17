@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
+<title>Private chess replay</title>
+<style>
+:root { color-scheme: dark; color: #f1e8d9; background: #100e0d; font: 16px/1.5 Georgia, serif; }
+main { max-width: 1040px; margin: 32px auto; padding: 0 18px 24px; }
+h1 { margin: 0 0 16px; font-weight: 400; font-size: clamp(1.8rem, 5vw, 3rem); }
+canvas { display: block; width: 100%; height: auto; border: 1px solid #584537; border-radius: 4px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+button, a { font: inherit; background: #282019; color: inherit; border: 1px solid #765d45; border-radius: 4px; padding: 8px 12px; }
+#record { background: #dfab6b; color: #1a130e; }
+button:disabled { opacity: .5; }
+input { flex: 1; min-width: 130px; accent-color: #dfab6b; }
+:focus-visible { outline: 2px solid #f2bf89; outline-offset: 3px; }
+#caption, #status { color: #d3c1ae; margin: 12px 0 0; }
+[hidden] { display: none; }
+</style>
+<main>
+  <h1>Private chess replay</h1>
+  <canvas id="film" width="1024" height="624" role="img" aria-label="Chess position and move annotations"></canvas>
+  <div class="controls">
+    <button id="prev" type="button">Previous</button>
+    <input id="position" type="range" min="0" value="0" aria-label="Move in replay">
+    <button id="next" type="button">Next</button>
+    <button id="record" type="button">Render WebM</button>
+    <a id="download" download="chess-replay.webm" hidden>Download WebM</a>
+  </div>
+  <p id="caption" aria-live="polite"></p>
+  <p id="status" role="status"></p>
+</main>
+<script type="application/json" id="replay-data">__REPLAY_DATA__</script>
+<script>
+'use strict';
+const replay = JSON.parse(document.querySelector('#replay-data').textContent);
+const film = document.querySelector('#film');
+const pen = film.getContext('2d');
+const position = document.querySelector('#position');
+const previous = document.querySelector('#prev');
+const next = document.querySelector('#next');
+const record = document.querySelector('#record');
+const download = document.querySelector('#download');
+const status = document.querySelector('#status');
+const caption = document.querySelector('#caption');
+const glyphs = {k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+const last = replay.frames.length - 1;
+const result = {'0-1':'Black wins', '1-0':'White wins', '1/2-1/2':'Draw'}[replay.result];
+let busy = false;
+position.max = last;
+
+function text(value, x, y, color, font) {
+  pen.fillStyle = color;
+  pen.font = font;
+  pen.fillText(value, x, y);
+}
+
+function draw(index) {
+  const step = replay.frames[index];
+  const side = replay.side === 'white' ? 'White' : 'Black';
+  pen.fillStyle = '#181310';
+  pen.fillRect(0, 0, film.width, film.height);
+  let squares = step.position.replaceAll('/', '').replace(/[1-8]/g, n => ' '.repeat(Number(n))).split('');
+  const flipped = side === 'Black';
+  if (flipped) squares.reverse();
+  pen.textAlign = 'center';
+  pen.textBaseline = 'middle';
+  squares.forEach((piece, index) => {
+    const column = index % 8;
+    const row = Math.floor(index / 8);
+    const x = 43 + column * 65;
+    const y = 39 + row * 65;
+    const file = 'abcdefgh'[flipped ? 7 - column : column];
+    const rank = flipped ? row + 1 : 8 - row;
+    const square = file + rank;
+    const marked = step.uci && [step.uci.slice(0, 2), step.uci.slice(2, 4)].includes(square);
+    pen.fillStyle = marked ? '#bb8149' : (column + row) % 2 ? '#705d4f' : '#dbc3a3';
+    pen.fillRect(x, y, 65, 65);
+    if (piece !== ' ') {
+      const light = piece === piece.toUpperCase();
+      pen.font = '47px "DejaVu Sans", "Apple Symbols", serif';
+      pen.lineWidth = 1.5;
+      pen.strokeStyle = light ? '#3c2b21' : '#e3c5a4';
+      const symbol = glyphs[piece.toLowerCase()] + '\uFE0E';
+      pen.strokeText(symbol, x + 32.5, y + 35);
+      pen.fillStyle = light ? '#fff3dd' : '#211b18';
+      pen.fillText(symbol, x + 32.5, y + 35);
+    }
+    if (row === 7) text(file, x + 32.5, 580, '#d9c8b8', '16px monospace');
+    if (column === 0) text(rank, 23, y + 32.5, '#d9c8b8', '16px monospace');
+  });
+
+  pen.textAlign = 'left';
+  text(result, 606, 82, '#d9b78f', '22px Georgia');
+  text(step.move, 606, 172, '#fff3dd', index ? '58px Georgia' : '38px Georgia');
+  text(`Ply ${index} / ${last}  ·  Codex as ${side}`, 606, 231, '#d6c0ab', '20px monospace');
+  const evaluation = step.loss == null
+    ? (step.best_mate != null ? `Engine best mate score ${step.best_mate}` : '')
+    : `Stockfish move loss  ${step.loss} cp`;
+  const timing = step.trace
+    ? `Verified at +${step.trace.elapsed.toFixed(1)} s`
+    : index ? 'Opponent move from PGN' : '';
+  text(evaluation, 606, 322, '#e6b878', '19px monospace');
+  text(timing, 606, 381, '#d6c0ab', '18px monospace');
+  if (step.trace) {
+    text(`Screenshot to readback  ${step.trace.latency.toFixed(1)} s`, 606, 415, '#d6c0ab', '16px monospace');
+  }
+  caption.textContent = [step.move, evaluation, timing].filter(Boolean).join(' · ');
+  position.value = index;
+  previous.disabled = busy || index === 0;
+  next.disabled = busy || index === last;
+}
+
+previous.addEventListener('click', () => draw(Number(position.value) - 1));
+next.addEventListener('click', () => draw(Number(position.value) + 1));
+position.addEventListener('input', () => draw(Number(position.value)));
+draw(0);
+
+const mimeType = 'video/webm;codecs=vp8';
+if (!film.captureStream || !window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+  record.disabled = true;
+  status.textContent = 'This browser can replay the board. WebM rendering requires canvas recording support.';
+} else {
+  record.addEventListener('click', async () => {
+    busy = true;
+    record.disabled = position.disabled = true;
+    download.hidden = true;
+    if (download.href) URL.revokeObjectURL(download.href);
+    let stream;
+    try {
+      stream = film.captureStream(30);
+      const encoder = new MediaRecorder(stream, {mimeType});
+      const chunks = [];
+      const finished = new Promise((resolve, reject) => {
+        encoder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+        encoder.onerror = event => reject(event.error);
+        encoder.onstop = resolve;
+      });
+      draw(0);
+      encoder.start();
+      const render = async () => {
+        for (let index = 0; index <= last; index++) {
+          draw(index);
+          status.textContent = `Rendering position ${index + 1} of ${last + 1}`;
+          await new Promise(resolve => setTimeout(resolve, index === last ? 1500 : 850));
+        }
+        encoder.stop();
+      };
+      await Promise.all([render(), finished]);
+      if (!chunks.length) throw new Error('No video frames recorded');
+      download.href = URL.createObjectURL(new Blob(chunks, {type: 'video/webm'}));
+      download.hidden = false;
+      status.textContent = 'WebM is ready to save locally.';
+    } catch (error) {
+      status.textContent = `WebM rendering failed: ${error.message}`;
+    } finally {
+      stream?.getTracks().forEach(track => track.stop());
+      busy = false;
+      record.disabled = position.disabled = false;
+      draw(Number(position.value));
+    }
+  });
+}
+</script>
+</html>
