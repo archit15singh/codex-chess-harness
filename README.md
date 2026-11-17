@@ -51,3 +51,17 @@ For each iteration, write down one failure, one proposed strategy change and how
 node --test
 .venv/bin/python -m unittest discover -s tests -v
 ```
+
+## Save a reusable pattern
+
+Turn a reviewed mistake or successful tactic into a short observation and decision rule. Store the pattern in the local archive database and link it to the game that supplied the evidence.
+
+```sh
+.venv/bin/python -m chesslab.patterns add 'Forcing move scan' \
+  --cues 'Exposed king, few escape squares, long-range pieces nearby' \
+  --rule 'Check forcing moves. Verify the escape squares and immediate captures before committing.' \
+  --source-run game-001
+.venv/bin/python -m chesslab.patterns find king --include-candidates
+```
+
+Once the rule meets the predeclared offline promotion criteria, record the verdict with `chesslab.patterns review NAME ready --evidence REPORT`. Use `rejected` for a rule whose test did not support adoption. Default search shows ready rules. Look them up between games and carry only the general rules into the next game. Engine output, matching positions, and suggested moves stay offline.
