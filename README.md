@@ -8,8 +8,8 @@ For repository navigation and contribution boundaries, start with [AGENTS.md](AG
 
 Use Duolingo’s visible Anyone route only within the platform and participant permission for the run. Keep assessments and Stockfish outside the player context during play.
 
-1. Prepare a fresh, private evidence directory, a frozen copy of `controller.mjs`, and a native Brave CUA binding before matchmaking. Inspect the live UI before resuming a run or retrying a click.
-2. Load the frozen module in the CUA JavaScript session. Pass the native Brave app binding and a new directory under the ignored `evidence/private/` directory to `createController`. Confirm screenshot capture works before starting.
+1. Prepare the frozen `controller.mjs` and native Brave CUA binding. Run the [matchmaking preflight](#matchmaking-preflight) before creating the game directory.
+2. After preflight passes, load the frozen module in the CUA JavaScript session. Pass the native Brave app binding and a new directory under the ignored `evidence/private/` directory to `createController`. Verify the lobby again in the controller's first capture before clicking Play Anyone.
 3. Read an image returned by `observe()`. Choose the move from the screenshot, confirm the active clock and settled board, then call `click(label, source, destination)` with screenshot-derived coordinates. Promotion is a separately observed, labeled click.
 4. Read the resulting screenshot and call `verify(status, observation, note)` with `accepted`, `rejected`, or `uncertain`. Capture a fresh frame if a click was interrupted or the board is still animating. The ledger stores screenshots by hash and only the agent interprets their contents.
 5. Read the result screen and match history. Record both ratings when visible, retain incomplete attempts, and transcribe verified moves into a private PGN. Keep account and opponent details local.
@@ -29,6 +29,19 @@ await controller.verify('accepted', frame, 'Piece and turn change confirmed');
 ```
 
 For an authorized live broadcast, follow the [Twitch streaming workflow](docs/live-stream.md).
+
+### Matchmaking preflight
+
+1. Take a native Brave screenshot directly, before creating the controller or game directory. Visually confirm the Duolingo Chess Matches lobby, the selected Anyone mode, and an enabled Play Anyone button on the current frame. Use the frozen screenshot format.
+2. If another page is focused or the lobby state is uncertain, skip every click. Log the blocked preflight and wait for the correct lobby to be visible. From a fresh screenshot, confirm the lobby, mode, and button again. Respect any visible matchmaking cooldown.
+3. After repeated window position errors, confirm that clicks reach the right window before queueing. On a fresh screenshot of Chess Matches, click a different mode card and verify the changed selection. Reselect Anyone and verify the selection and enabled Play Anyone button from another screenshot. Stop clicking if the readback fails or the lobby disappears.
+4. When the check passes, allocate the planned game ID. Inspect the controller's first capture before issuing the queue click. If focus changed during setup, log the preflight failure and leave the game unstarted. Keep any unstarted setup directory private and move it aside before reusing that ID. Preserve the ledger as a match attempt once a queue click is issued or a user-started board is observed.
+
+Append blocked preflights to `evidence/private/preflight-events.jsonl` with a UTC timestamp, planned game ID, and a fixed reason such as `wrong_surface`, `lobby_unverified`, or `click_unverified`. The preflight log is separate from the match manifest. Keep it free of screenshots, window titles, URLs, account details, and free-text descriptions of unrelated pages.
+
+```json
+{"at":"2026-01-01T00:00:00Z","planned_game":"example-001","reason":"wrong_surface"}
+```
 
 ## Review and archive
 
