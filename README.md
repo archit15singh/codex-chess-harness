@@ -2,6 +2,8 @@
 
 A repeatable workflow for screenshot-only chess in Brave, followed by local Stockfish review. The first documented Duolingo Anyone session ended in a checkmate win and an account rating change from 585 to 597. [Session record](https://github.com/archit15singh/codex-chess-lab/blob/main/session/README.md)
 
+For repository navigation and contribution boundaries, start with [AGENTS.md](AGENTS.md).
+
 ## Play and verify
 
 Use Duolingo’s visible Anyone route only within the platform and participant permission for the run. Keep assessments and Stockfish outside the player context during play.
@@ -47,7 +49,11 @@ For each iteration, write down one failure, one proposed strategy change and how
 
 ## Verify the code
 
+The offline checks run with Node 24 and Python 3.13 in GitHub Actions. From the repository root, set up the environment and run both suites.
+
 ```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-evaluator.txt
 node --test
 .venv/bin/python -m unittest discover -s tests -v
 ```
