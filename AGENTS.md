@@ -2,6 +2,8 @@
 
 Start with the [README](README.md) for setup, commands, and the game-to-review workflow. See [agent readiness](docs/agent-readiness.md) for the repository design and verification boundaries.
 
+When delegating during live collection, read the [subagent workflow](.codex/subagent-workflow.md) for UI ownership, parallel work, and the post-game handoff.
+
 | Task | Entry point |
 | --- | --- |
 | Capture a board and record a visible action | [controller.mjs](controller.mjs) |
