@@ -43,3 +43,30 @@ class ComparisonTests(unittest.TestCase):
             self.assertEqual(report["screen_to_verification_seconds"], {"count": 1, "median": 3})
             with self.assertRaisesRegex(ValueError, "disagree"):
                 timing_summary(log, ["e2e3"])
+
+    def test_promotion_picker_counts_as_an_action_but_not_an_extra_pgn_move(self):
+        with TemporaryDirectory() as directory:
+            log = Path(directory) / "actions.jsonl"
+            rows = [
+                {"id": "1", "phase": "intent", "label": "a7a8",
+                 "observedAt": "2026-01-01T00:00:00Z"},
+                {"id": "1", "phase": "verified", "status": "accepted",
+                 "at": "2026-01-01T00:00:02Z"},
+                {"id": "2", "phase": "intent", "label": "a7a8n",
+                 "observedAt": "2026-01-01T00:00:03Z"},
+                {"id": "2", "phase": "verified", "status": "rejected",
+                 "at": "2026-01-01T00:00:04Z"},
+                {"id": "3", "phase": "intent", "label": "a7a8q",
+                 "observedAt": "2026-01-01T00:00:05Z"},
+                {"id": "3", "phase": "verified", "status": "accepted",
+                 "at": "2026-01-01T00:00:11Z"},
+            ]
+            log.write_text("\n".join(json.dumps(row) for row in rows))
+            report = timing_summary(log, ["a7a8q"])
+            self.assertEqual(report["move_verdicts"], {"accepted": 2, "rejected": 1, "unverified": 0})
+            self.assertEqual(report["screen_to_verification_seconds"], {"count": 2, "median": 4})
+
+            rows[-2]["label"] = "b7b8q"
+            log.write_text("\n".join(json.dumps(row) for row in rows))
+            with self.assertRaisesRegex(ValueError, "disagree"):
+                timing_summary(log, ["b7b8q"])

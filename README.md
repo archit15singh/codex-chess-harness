@@ -83,7 +83,7 @@ Keep an ordered JSON array under `evidence/private/` with one entry per archived
   > evidence/private/comparison.json
 ```
 
-Optional `trace` fields are `input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_tokens`, and `duration_seconds`. Record how you derived them alongside the manifest. Cached input and reasoning output are subsets of the corresponding totals. The report retains missing measurements, tracks incomplete attempts, and shows the prospective subset. Screen-to-verification latency covers the last input screenshot through the operator's readback. It can include UI and model time. Compare only like-for-like engine settings and review the output before sharing aggregate results.
+Optional `trace` fields are `input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_tokens`, and `duration_seconds`. Record how you derived them alongside the manifest. Cached input and reasoning output are subsets of the corresponding totals. The report retains missing measurements, tracks incomplete attempts, and shows the prospective subset. Screen-to-verification latency covers each accepted move action from its input screenshot through the operator's readback. It can include UI and model time. When promotion uses a picker, verdicts and latency count both actions. PGN alignment counts the promotion once. Compare only like-for-like engine settings and review the output before sharing aggregate results.
 
 After a game ends and the ledger is closed, sample the player's local Codex rollout. Set the shell variables to the private rollout path and expected player model.
 

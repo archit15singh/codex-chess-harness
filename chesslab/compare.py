@@ -47,7 +47,11 @@ def timing_summary(path: Path, expected_moves: list[str] | None) -> dict:
         verdict = event["status"]
         counts[verdict] += 1
         if verdict == "accepted":
-            accepted_moves.append(label)
+            # The picker opens on the unsuffixed action. The choice completes the PGN move.
+            if len(label) == 5 and accepted_moves and accepted_moves[-1] == label[:4]:
+                accepted_moves[-1] = label
+            else:
+                accepted_moves.append(label)
             observed = datetime.fromisoformat(intent["observedAt"])
             verified = datetime.fromisoformat(event["at"])
             seconds = (verified - observed).total_seconds()
