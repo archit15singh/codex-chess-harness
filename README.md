@@ -47,6 +47,28 @@ For a platform adjudication such as resignation or timeout, verify the outcome o
 
 For each iteration, write down one failure, one proposed strategy change and how to measure it. Compare the candidate with the frozen baseline on unseen positions using fresh player contexts and the same model, effort, inputs, and scoring. Seal both move selections before revealing engine answers. Report sample size, missing answers, accuracy, and timings. Promote changes only when the measured results support them. Account Elo is tracked as a platform outcome alongside the benchmark.
 
+## Compare reasoning efforts
+
+Keep an ordered JSON array under `evidence/private/` with one entry per archived attempt. Set `id` to its archive ID and `effort` to the setting verified in the host trace. Mark retrospective games with `historical: true`. Attach available evaluation and action logs using paths relative to the private root.
+
+```json
+[
+  {
+    "id": "example-001",
+    "effort": "medium",
+    "evaluation": "example-001-evaluation.json",
+    "actions": "example-001/actions.jsonl"
+  }
+]
+```
+
+```sh
+.venv/bin/python -m chesslab.compare evidence/private/manifest.json \
+  > evidence/private/comparison.json
+```
+
+Optional `trace` fields are `input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_tokens`, and `duration_seconds`. Record how you derived them alongside the manifest. Cached input and reasoning output are subsets of the corresponding totals. The report retains missing measurements, tracks incomplete attempts, and shows the prospective subset. Screen-to-verification latency covers the last input screenshot through the operator's readback. It can include UI and model time. Compare only like-for-like engine settings and review the output before sharing aggregate results.
+
 ## Verify the code
 
 The offline checks run with Node 24 and Python 3.13 in GitHub Actions. From the repository root, set up the environment and run both suites.
