@@ -47,6 +47,20 @@ For a platform adjudication such as resignation or timeout, verify the outcome o
 
 For each iteration, write down one failure, one proposed strategy change and how to measure it. Compare the candidate with the frozen baseline on unseen positions using fresh player contexts and the same model, effort, inputs, and scoring. Seal both move selections before revealing engine answers. Report sample size, missing answers, accuracy, and timings. Promote changes only when the measured results support them. Account Elo is tracked as a platform outcome alongside the benchmark.
 
+## Make a private annotated replay
+
+Use a completed PGN, its audited action ledger, and the corresponding Stockfish evaluation. The exporter checks screenshot hashes and joins every accepted player move to the PGN in sequence. It reconstructs the board, shows Stockfish loss or mate scores, and displays player action times relative to the first ledger entry. Opponent moves come from the PGN and have no player readback timestamp.
+
+```sh
+.venv/bin/python -m chesslab.replay evidence/private/example-001.pgn \
+  --evaluation evidence/private/example-001-evaluation.json \
+  --actions evidence/private/example-001/actions.jsonl --side black \
+  --output evidence/private/example-001/replay.html
+open -a 'Brave Browser' "$PWD/evidence/private/example-001/replay.html"
+```
+
+Use the slider to inspect moves. Select **Render WebM**, keep the tab visible through the render, then save the file under `evidence/private/` for editing. The exported clip plays at a fixed pace with the observed timestamps in the captions. The viewer and video render a reconstructed board without the original screenshots, names, PGN headers, raw trace text, or absolute timestamps.
+
 ## Compare reasoning efforts
 
 Keep an ordered JSON array under `evidence/private/` with one entry per archived attempt. Set `id` to its archive ID and `effort` to the setting verified in the host trace. Mark retrospective games with `historical: true`. Attach available evaluation and action logs using paths relative to the private root.
