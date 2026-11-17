@@ -28,6 +28,8 @@ await nodeRepl.emitImage(frame.bytes);
 await controller.verify('accepted', frame, 'Piece and turn change confirmed');
 ```
 
+For an authorized live broadcast, follow the [Twitch streaming workflow](docs/live-stream.md).
+
 ## Review and archive
 
 Prepare Python with `python3 -m venv .venv` and install `requirements-evaluator.txt` inside that environment. Use a local [Stockfish](https://github.com/official-stockfish/Stockfish) UCI executable.
