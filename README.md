@@ -34,6 +34,7 @@ For an authorized live broadcast, follow the [Twitch streaming workflow](docs/li
 
 - If the original controller is still available, call `observe()` on it and inspect the settled frame. If a click is pending, pass that frame to `verify()` and record what the screen supports before issuing another click. If the evidence leaves the board or turn uncertain, stop playing and preserve the attempt.
 - If the controller is gone, preserve its run directory and ledger. A new controller cannot reopen that directory or restore its pending click. Inspect the current screen and save any visible platform result and Elo as separate private recovery evidence. Record the unverified action and the last verified position. Archive the attempt as incomplete when the full verified move record or platform outcome is missing.
+- Keep the run directory in place until the controller has stopped. The controller checks directory identity before Brave calls and evidence writes. If it detects that the directory moved, disappeared, or was replaced, discard that controller and preserve the original evidence. A filesystem change can still race a check. If an action was already underway, inspect a fresh screen before a retry. The original ledger may only show intent even if Brave received part of the action.
 - Before a replacement session queues another game, confirm the previous player has stopped and verify the last attempt's private archive. Keep both trace boundaries and resume from a fresh lobby screenshot with the next game ID.
 
 ### Matchmaking preflight

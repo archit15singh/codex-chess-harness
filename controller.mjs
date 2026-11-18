@@ -1,29 +1,48 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { appendFile, lstat, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 // The caller owns the visible browser and judges every position and click.
 export async function createController(app, evidenceDirectory) {
   const root = resolve(evidenceDirectory);
   await mkdir(root, { mode: 0o700 });
+  const directory = await lstat(root, { bigint: true });
   const ledger = join(root, 'actions.jsonl');
   let latest;
   let pending;
   let active = false;
+  let stale = false;
+
+  async function requireRunDirectory() {
+    if (!stale) {
+      let current;
+      try {
+        current = await lstat(root, { bigint: true });
+      } catch (error) {
+        if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error;
+      }
+      stale = !current?.isDirectory() || current.dev !== directory.dev ||
+        current.ino !== directory.ino || current.birthtimeNs !== directory.birthtimeNs;
+    }
+    if (stale) throw new Error('Controller run directory was removed or replaced');
+  }
 
   async function log(event) {
+    await requireRunDirectory();
     await appendFile(ledger, JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n', {
       mode: 0o600,
     });
   }
 
   async function capture() {
+    await requireRunDirectory();
     const screenshot = await app.getScreenshot({ emit: false });
     const source = typeof screenshot[0] === 'number' ? screenshot : screenshot[0]?.bytes;
     if (!source?.length) throw new Error('Brave returned no screenshot');
     const capturedAt = new Date().toISOString();
     const bytes = Buffer.from(source);
     const file = randomUUID() + '.png';
+    await requireRunDirectory();
     await writeFile(join(root, file), bytes, { mode: 0o600, flag: 'wx' });
     const ref = { file, sha256: createHash('sha256').update(bytes).digest('hex') };
     latest = { ref, capturedAt };
@@ -54,13 +73,16 @@ export async function createController(app, evidenceDirectory) {
       await log({ id, label, phase: 'intent', points, pre: pre.ref, observedAt: pre.capturedAt });
       pending = { id, label };
       latest = undefined;
-      for (const point of points) await app.click(point);
+      for (const point of points) {
+        await requireRunDirectory();
+        await app.click(point);
+      }
       await log({ id, label, phase: 'clicked' });
       const post = await capture();
       await log({ id, label, phase: 'observed', post: post.ref, observedAt: post.capturedAt });
       return post;
     } catch (error) {
-      await log({ id, label, phase: 'error', message: String(error) });
+      if (!stale) await log({ id, label, phase: 'error', message: String(error) });
       throw error;
     } finally {
       active = false;
