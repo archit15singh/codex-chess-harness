@@ -11,7 +11,7 @@ Use Duolingo’s visible Anyone route only within the platform and participant p
 1. Prepare the frozen `controller.mjs` and native Brave CUA binding. Run the [matchmaking preflight](#matchmaking-preflight) before creating the game directory.
 2. After preflight passes, load the frozen module in the CUA JavaScript session. Pass the native Brave app binding and a new directory under the ignored `evidence/private/` directory to `createController`. Verify the lobby again in the controller's first capture before clicking Play Anyone.
 3. Read an image returned by `observe()`. Choose the move from the screenshot, confirm the active clock and settled board, then call `click(label, source, destination)` with screenshot-derived coordinates. Promotion is a separately observed, labeled click.
-4. Read the resulting screenshot and call `verify(status, observation, note)` with `accepted`, `rejected`, or `uncertain`. Capture a fresh frame if a click was interrupted or the board is still animating. The ledger stores screenshots by hash and only the agent interprets their contents.
+4. Read the resulting screenshot and call `verify(status, observation, note)` with `accepted`, `rejected`, or `uncertain`. If a click was interrupted or the board is still animating, follow [the recovery steps](#recover-an-interrupted-action). The ledger stores screenshots by hash and only the agent interprets their contents.
 5. Read the result screen and match history. Record both ratings when visible, retain incomplete attempts, and transcribe verified moves into a private PGN. Keep account and opponent details local.
 
 Example using a previously bound native Brave app and coordinates derived from a current image.
@@ -29,6 +29,12 @@ await controller.verify('accepted', frame, 'Piece and turn change confirmed');
 ```
 
 For an authorized live broadcast, follow the [Twitch streaming workflow](docs/live-stream.md).
+
+### Recover an interrupted action
+
+- If the original controller is still available, call `observe()` on it and inspect the settled frame. If a click is pending, pass that frame to `verify()` and record what the screen supports before issuing another click. If the evidence leaves the board or turn uncertain, stop playing and preserve the attempt.
+- If the controller is gone, preserve its run directory and ledger. A new controller cannot reopen that directory or restore its pending click. Inspect the current screen and save any visible platform result and Elo as separate private recovery evidence. Record the unverified action and the last verified position. Archive the attempt as incomplete when the full verified move record or platform outcome is missing.
+- Before a replacement session queues another game, confirm the previous player has stopped and verify the last attempt's private archive. Keep both trace boundaries and resume from a fresh lobby screenshot with the next game ID.
 
 ### Matchmaking preflight
 
